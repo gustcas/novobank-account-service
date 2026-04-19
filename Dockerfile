@@ -11,4 +11,6 @@ WORKDIR /app
 RUN addgroup -S novobanco && adduser -S novobanco -G novobanco
 COPY --from=builder /build/target/*.jar app.jar
 USER novobanco
-ENTRYPOINT ["java", "-jar", "app.jar"]
+EXPOSE 8080
+ENV JAVA_OPTS=""
+ENTRYPOINT ["sh", "-c", "exec java $JAVA_OPTS -jar app.jar"]

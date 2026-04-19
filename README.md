@@ -116,6 +116,72 @@ spring.datasource.password=novobanco123
 
 ---
 
+### Opción C — Deploy en Railway
+
+Railway no ejecuta `docker-compose.yml` completo. Para este proyecto, la traducción correcta es:
+
+- `app` → un servicio desplegado desde GitHub usando el [Dockerfile](/I:/myTest/novobank-account-service/Dockerfile)
+- `postgres` → una base de datos PostgreSQL gestionada por Railway
+- `pgadmin` → opcional; no es necesario para arrancar
+
+La aplicación ya está preparada para Railway:
+
+- escucha el puerto inyectado por Railway con `server.port=${PORT:8080}`
+- toma credenciales desde `DB_URL`, `DB_USERNAME` y `DB_PASSWORD`
+- crea y actualiza el esquema con Flyway al arrancar
+
+Variables recomendadas en el servicio de la app:
+
+```env
+SPRING_PROFILES_ACTIVE=prod
+DB_URL=jdbc:postgresql://${{Postgres.PGHOST}}:${{Postgres.PGPORT}}/${{Postgres.PGDATABASE}}
+DB_USERNAME=${{Postgres.PGUSER}}
+DB_PASSWORD=${{Postgres.PGPASSWORD}}
+```
+
+También puedes tomar la plantilla desde [.env.railway.example](/I:/myTest/novobank-account-service/.env.railway.example).
+El repo también incluye [railway.json](/I:/myTest/novobank-account-service/railway.json) para fijar el uso de `Dockerfile` como builder.
+
+Pasos desde GitHub:
+
+1. Sube este repositorio a GitHub.
+2. En Railway, crea un proyecto nuevo.
+3. Agrega `PostgreSQL` desde `New -> Database -> PostgreSQL`.
+4. Agrega un servicio nuevo desde `Deploy from GitHub repo` y selecciona este repositorio.
+5. Railway detectará automáticamente el `Dockerfile` en la raíz y construirá la imagen.
+6. En el servicio de la app, define las variables de entorno mostradas arriba y enlázalas al servicio Postgres.
+7. Opcional pero recomendado: agrega `SPRING_PROFILES_ACTIVE=prod`.
+8. Genera un dominio público para el servicio desde la sección de networking de Railway.
+9. Verifica el despliegue abriendo `/swagger-ui.html` o `/api-docs`.
+
+Notas operativas:
+
+- No definas `PORT` manualmente; Railway lo inyecta.
+- No necesitas `ports`, `container_name`, `networks` ni `depends_on` como en Docker Compose.
+- El archivo `docker/postgres/init.sql` es solo para el entorno local con Compose.
+- En Railway, el esquema lo gestiona Flyway con `src/main/resources/db/migration`.
+- No configuré `healthcheckPath` en `railway.json` porque la app no expone hoy un endpoint de health dedicado. Si luego agregas Spring Boot Actuator, puedes usar `/actuator/health`.
+
+Checklist exacto del primer deploy:
+
+1. Haz push de esta rama a GitHub.
+2. En Railway, crea el proyecto eligiendo `Deploy from GitHub repo`.
+3. Selecciona este repositorio y la rama que vas a desplegar.
+4. Confirma que Railway detectó `Dockerfile` en la raíz o que tomó la config de [railway.json](/I:/myTest/novobank-account-service/railway.json).
+5. Agrega un servicio `PostgreSQL` en el mismo proyecto.
+6. En el servicio de la app, abre `Variables` y crea:
+7. `SPRING_PROFILES_ACTIVE=prod`
+8. `DB_URL=jdbc:postgresql://${{Postgres.PGHOST}}:${{Postgres.PGPORT}}/${{Postgres.PGDATABASE}}`
+9. `DB_USERNAME=${{Postgres.PGUSER}}`
+10. `DB_PASSWORD=${{Postgres.PGPASSWORD}}`
+11. Lanza el deploy y revisa logs hasta ver que Flyway aplicó migraciones y que Spring levantó en el puerto `${PORT}`.
+12. En `Settings -> Networking`, genera un dominio público.
+13. Prueba `https://<tu-dominio>/swagger-ui.html`.
+14. Si Swagger responde, prueba `https://<tu-dominio>/api-docs`.
+15. Si el arranque falla por conexión a base, revisa que las variables estén en el servicio app y que apunten al servicio `Postgres` del mismo proyecto.
+
+---
+
 ### Ejecutar pruebas
 
 ```bash
