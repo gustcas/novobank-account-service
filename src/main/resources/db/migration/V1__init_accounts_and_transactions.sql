@@ -64,7 +64,8 @@ CREATE TABLE transactions (
     CONSTRAINT fk_transactions_account
         FOREIGN KEY (account_id) REFERENCES accounts(id),
     CONSTRAINT fk_transactions_related_tx
-        FOREIGN KEY (related_tx_id) REFERENCES transactions(id),
+        FOREIGN KEY (related_tx_id) REFERENCES transactions(id)
+        DEFERRABLE INITIALLY DEFERRED,
     CONSTRAINT chk_transactions_type
         CHECK (type IN ('DEPOSIT', 'WITHDRAWAL', 'TRANSFER_DEBIT', 'TRANSFER_CREDIT')),
     CONSTRAINT chk_transactions_status
