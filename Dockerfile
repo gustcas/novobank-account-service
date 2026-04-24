@@ -11,6 +11,8 @@ WORKDIR /app
 RUN addgroup -S novobanco && adduser -S novobanco -G novobanco
 COPY --from=builder /build/target/*.jar app.jar
 USER novobanco
-EXPOSE 8080
+# ✅ CORREGIDO: Usar PORT variable de entorno
+EXPOSE ${PORT:-8080}
 ENV JAVA_OPTS=""
-ENTRYPOINT ["sh", "-c", "exec java $JAVA_OPTS -jar app.jar"]
+# ✅ Asegurar que la app escucha en el puerto correcto
+ENTRYPOINT ["sh", "-c", "exec java -Dserver.port=${PORT:-8080} $JAVA_OPTS -jar app.jar"]
